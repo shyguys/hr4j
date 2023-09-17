@@ -1,0 +1,37 @@
+= hr4j
+:toc: auto
+
+Prints horizontal rules.
+
+== Setup
+
+Install java and maven:
+
+[source, shell]
+----
+brew install openjdk maven
+----
+
+Package hr4j:
+
+[source, shell]
+----
+mvn package
+----
+
+Wrap the java call in a helper script, e.g.:
+
+[source, shell]
+----
+echo "java -cp $(pwd)/$(find target -name "hr4j*.jar") com.shyguys.hr4j.hr4j \"\$@\"" > ~/bin/hr4j
+chmod +x ~/bin/hr4j
+----
+
+== Usage
+
+Please refer to the script's usage by running:
+
+[source, shell]
+----
+hr4j --help
+----
