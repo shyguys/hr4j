@@ -1,95 +1,84 @@
 package com.shyguys.hr4j;
 
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.Argument;
+import net.sourceforge.argparse4j.inf.ArgumentGroup;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.ArgumentType;
+import net.sourceforge.argparse4j.inf.Namespace;
+
 public class hr4j {
   public static final String PROG = "hr4j";
 
-  private static class ArgsNamespace {
-    public int length;
-    public String outer;
-    public String inner;
-    public boolean asParagraph;
-    public String title;
-
-    public ArgsNamespace(int length, String outer, String inner, boolean asParagraph, String title) {
-      this.length = length;
-      this.outer = outer;
-      this.inner = inner;
-      this.asParagraph = asParagraph;
-      this.title = title;
-    }
-  }
-
-  private static void usage() {
-    System.out.println(
-        "usage: " + PROG + " [-h] [-l INT] [-o STR] [-i CHAR] [-p] [title]\n" + //
-            "\n" + //
-            "positional arguments:\n" + //
-            "  title               title to insert in center\n" + //
-            "\n" + //
-            "options:\n" + //
-            "  -h, --help          show this help message and exit\n" + //
-            "  -l, --length INT    total character length (default: 80)\n" + //
-            "  -o, --outer STR     outer character(s) (default: //)\n" + //
-            "  -i, --inner CHAR    inner character (default: -)\n" + //
-            "  -p, --as-paragraph  as paragraph, BEGIN and END");
-  }
-
-  private static ArgsNamespace parseArgs(String[] args) {
-    ArgsNamespace ans = new ArgsNamespace(80, "//", "-", false, null);
-    for (int i = 0; i < args.length; i++) {
-      String opt = args[i];
-      if (opt.equals("-h") || opt.equals("--help")) {
-        usage();
+  private static Namespace parseArgs(String[] args) {
+    ArgumentParser parser = ArgumentParsers.newFor(PROG)
+        .singleMetavar(true)
+        .build();
+    parser.addArgument("title")
+        .dest("title")
+        .help("title to insert in center")
+        .nargs("?");
+    parser.addArgument("-p --as-paragraph")
+        .dest("asParagraph")
+        .help("print two horizontal rules, BEGIN and END")
+        .action(Arguments.storeTrue());
+    ArgumentGroup styleProperties = parser.addArgumentGroup("style properties");
+    styleProperties.addArgument("-i --inner")
+        .dest("inner")
+        .metavar("STR")
+        .help("inner character (default: -)")
+        .setDefault("-")
+        .type(new ArgumentType<String>() {
+          @Override
+          public String convert(ArgumentParser parser, Argument arg, String value) throws ArgumentParserException {
+            return value.strip().substring(0, 1);
+          }
+        });
+    styleProperties.addArgument("-l --length")
+        .dest("length")
+        .metavar("INT")
+        .help("total character length (default: 80)")
+        .setDefault(80)
+        .type(Integer.class);
+    styleProperties.addArgument("-o --outer")
+        .dest("outer")
+        .metavar("STR")
+        .help("outer character(s) (default: //)")
+        .setDefault("//")
+        .type(new ArgumentType<String>() {
+          @Override
+          public String convert(ArgumentParser parser, Argument arg, String value) throws ArgumentParserException {
+            return value.strip();
+          }
+        });
+    try {
+      return parser.parseArgs(args);
+    } catch (ArgumentParserException e) {
+      parser.handleError(e);
+      if (e.getMessage().equals("Help Screen")) {
         System.exit(0);
-      } else if (opt.equals("-l") || opt.equals("--length")) {
-        try {
-          ans.length = Integer.parseInt(args[++i]);
-        } catch (IndexOutOfBoundsException e) {
-          System.err.println(PROG + ": -l/--length expected one argument");
-          System.exit(1);
-        } catch (NumberFormatException e) {
-          System.err.println(PROG + ": -l/--length must be an integer");
-          System.exit(1);
-        }
-      } else if (opt.equals("-o") || opt.equals("--outer")) {
-        try {
-          ans.outer = args[++i];
-        } catch (IndexOutOfBoundsException e) {
-          System.err.println(PROG + ": -o/--outer expected one argument");
-          System.exit(1);
-        }
-      } else if (opt.equals("-i") || opt.equals("--inner")) {
-        try {
-          ans.inner = args[++i].substring(0, 1);
-        } catch (IndexOutOfBoundsException e) {
-          System.err.println(PROG + ": -i/--inner expected one argument");
-          System.exit(1);
-        }
-      } else if (opt.equals("-p") || opt.equals("--as-paragraph")) {
-        ans.asParagraph = true;
-      } else if (opt.startsWith("-")) {
-        System.err.println(PROG + ": option '" + opt + "' not recognized");
-        System.exit(1);
       } else {
-        if (ans.title == null) {
-          ans.title = opt;
-        } else {
-          System.err.println(PROG + ": positional argument '" + opt + "' not recognized");
-          System.exit(1);
-        }
+        System.exit(1);
       }
     }
-    return ans;
+    return null;
   }
 
   public static void main(String[] args) {
-    ArgsNamespace ans = parseArgs(args);
-    if (ans.asParagraph) {
-      lib.print_paragraph(ans.length, ans.outer, ans.inner, ans.title);
-    } else if (ans.title != null) {
-      lib.print_titled(ans.length, ans.outer, ans.inner, ans.title);
-    } else {
-      lib.print_untitled(ans.length, ans.outer, ans.inner);
+    Namespace ns = parseArgs(args);
+    try {
+      if (ns.getBoolean("asParagraph")) {
+        lib.print_paragraph(ns.getInt("length"), ns.getString("outer"), ns.getString("inner"), ns.getString("title"));
+      } else if (ns.getString("title") != null) {
+        lib.print_titled(ns.getInt("length"), ns.getString("outer"), ns.getString("inner"), ns.getString("title"));
+      } else {
+        lib.print_untitled(ns.getInt("length"), ns.getString("outer"), ns.getString("inner"));
+      }
+    } catch (lib.LengthException e) {
+      System.err.println("[ERROR] " + e.getMessage());
+      System.exit(1);
     }
   }
 }
