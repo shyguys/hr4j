@@ -1,7 +1,7 @@
 = hr4j
 :toc: auto
 
-Prints horizontal rules.
+Prints horizontal rules. Java port of https://github.com/shyguys/hr.
 
 == Setup
 
