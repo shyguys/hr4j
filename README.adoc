@@ -23,7 +23,7 @@ Wrap the java call in a helper script, e.g.:
 
 [source, shell]
 ----
-echo "java -cp $(pwd)/$(find target -name "hr4j*.jar") com.shyguys.hr4j.hr4j \"\$@\"" > ~/bin/hr4j
+echo "java -jar $(pwd)/$(find target -name "hr4j*.jar") \"\$@\"" > ~/bin/hr4j
 chmod +x ~/bin/hr4j
 ----
 
